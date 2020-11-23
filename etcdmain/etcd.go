@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -75,7 +76,7 @@ func startEtcdOrProxyV2() {
 				plog.Errorf("When listening on specific address(es), this etcd process must advertise accessible url(s) to each connected client.")
 			}
 		}
-		os.Exit(1)
+		writeErrorCodeAndExit(cfg.ec.Dir, 1, lg)
 	}
 
 	if lg == nil {
@@ -127,7 +128,7 @@ func startEtcdOrProxyV2() {
 
 	var stopped <-chan struct{}
 	var errc <-chan error
-
+	var lerrc <-chan error
 	which := identifyDataDirOrDie(cfg.ec.GetLogger(), cfg.ec.Dir)
 	if which != dirEmpty {
 		if lg != nil {
@@ -141,7 +142,7 @@ func startEtcdOrProxyV2() {
 		}
 		switch which {
 		case dirMember:
-			stopped, errc, err = startEtcd(&cfg.ec)
+			stopped, lerrc, errc, err = startEtcd(&cfg.ec)
 		case dirProxy:
 			err = startProxy(cfg)
 		default:
@@ -157,7 +158,7 @@ func startEtcdOrProxyV2() {
 	} else {
 		shouldProxy := cfg.isProxy()
 		if !shouldProxy {
-			stopped, errc, err = startEtcd(&cfg.ec)
+			stopped, lerrc, errc, err = startEtcd(&cfg.ec)
 			if derr, ok := err.(*etcdserver.DiscoveryError); ok && derr.Err == v2discovery.ErrFullCluster {
 				if cfg.shouldFallbackToProxy() {
 					if lg != nil {
@@ -235,7 +236,7 @@ func startEtcdOrProxyV2() {
 					plog.Infof("please generate a new discovery token and try to bootstrap again.")
 				}
 			}
-			os.Exit(1)
+			writeErrorCodeAndExit(cfg.ec.Dir, 1, lg)
 		}
 
 		if strings.Contains(err.Error(), "include") && strings.Contains(err.Error(), "--initial-cluster") {
@@ -265,7 +266,7 @@ func startEtcdOrProxyV2() {
 					plog.Infof("if you want to use discovery service, please set --discovery flag.")
 				}
 			}
-			os.Exit(1)
+			writeErrorCodeAndExit(cfg.ec.Dir, 1, lg)
 		}
 		if lg != nil {
 			lg.Fatal("discovery failed", zap.Error(err))
@@ -284,6 +285,10 @@ func startEtcdOrProxyV2() {
 	notifySystemd(lg)
 
 	select {
+	case errc := <- lerrc:
+		if strings.Contains(errc.Error(), etcdserver.ErrMemberRemoved.Error()) {
+			writeErrorCodeAndExit(cfg.ec.Dir, 10, lg)
+		}
 	case lerr := <-errc:
 		// fatal out on listener errors
 		if lg != nil {
@@ -298,17 +303,18 @@ func startEtcdOrProxyV2() {
 }
 
 // startEtcd runs StartEtcd in addition to hooks needed for standalone etcd.
-func startEtcd(cfg *embed.Config) (<-chan struct{}, <-chan error, error) {
+func startEtcd(cfg *embed.Config) (<-chan struct{}, <-chan error, <-chan error, error) {
 	e, err := embed.StartEtcd(cfg)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	osutil.RegisterInterruptHandler(e.Close)
 	select {
 	case <-e.Server.ReadyNotify(): // wait for e.Server to join the cluster
+	case <-e.Server.ErrNotify(): // publish aborted errc channel
 	case <-e.Server.StopNotify(): // publish aborted from 'ErrStopped'
 	}
-	return e.Server.StopNotify(), e.Err(), nil
+	return e.Server.StopNotify(), e.Server.ErrNotify(), e.Err(), nil
 }
 
 // startProxy launches an HTTP proxy for client communication which proxies to other etcd nodes.
@@ -616,4 +622,19 @@ func checkSupportArch() {
 
 	fmt.Printf("etcd on unsupported platform without ETCD_UNSUPPORTED_ARCH=%s set\n", runtime.GOARCH)
 	os.Exit(1)
+}
+
+
+func writeErrorCodeAndExit(dataDir string, errorCode int, lg *zap.Logger) {
+	errorCodeFile := filepath.Join(dataDir, "tombstone")
+	if err := ioutil.WriteFile(errorCodeFile, []byte(strconv.Itoa(errorCode)), 0600); err != nil {
+		if lg != nil {
+			lg.Fatal(
+				"failed to write tombstone file",
+				zap.String("tombstone-file", errorCodeFile),
+			)
+		} else {
+			plog.Fatalf("failed to write tombstone file %s",errorCodeFile)
+		}
+	}
 }

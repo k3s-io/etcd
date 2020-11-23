@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"sync"
 	"sync/atomic"
@@ -105,6 +106,7 @@ var (
 	plog = capnslog.NewPackageLogger("go.etcd.io/etcd", "etcdserver")
 
 	storeMemberAttributeRegexp = regexp.MustCompile(path.Join(membership.StoreMembersPrefix, "[[:xdigit:]]{1,16}", "attributes"))
+
 )
 
 func init() {
@@ -1388,7 +1390,7 @@ func (s *EtcdServer) applyEntries(ep *etcdProgress, apply *apply) {
 	}
 	var shouldstop bool
 	if ep.appliedt, ep.appliedi, shouldstop = s.apply(ents, &ep.confState); shouldstop {
-		go s.stopWithDelay(10*100*time.Millisecond, fmt.Errorf("the member has been permanently removed from the cluster"))
+		go s.stopWithDelay(10*100*time.Millisecond, ErrMemberRemoved)
 	}
 }
 
@@ -1550,6 +1552,8 @@ func (s *EtcdServer) stopWithDelay(d time.Duration, err error) {
 // StopNotify returns a channel that receives a empty struct
 // when the server is stopped.
 func (s *EtcdServer) StopNotify() <-chan struct{} { return s.done }
+
+func (s *EtcdServer) ErrNotify() <-chan error { return s.errorc }
 
 func (s *EtcdServer) SelfStats() []byte { return s.stats.JSON() }
 
@@ -2145,6 +2149,7 @@ func (s *EtcdServer) apply(
 				s.consistIndex.setConsistentIndex(e.Index)
 			}
 			var cc raftpb.ConfChange
+			var removedSelf bool
 			pbutil.MustUnmarshal(&cc, e.Data)
 			removedSelf, err := s.applyConfChange(cc, confState)
 			s.setAppliedIndex(e.Index)
@@ -2670,6 +2675,15 @@ func (s *EtcdServer) Logger() *zap.Logger {
 
 // IsLearner returns if the local member is raft learner
 func (s *EtcdServer) IsLearner() bool {
+	tombstoneFile := filepath.Join(s.Cfg.DataDir, "tombstone")
+	if _, err := os.Stat(tombstoneFile); err == nil {
+		if lg := s.getLogger(); lg != nil {
+			lg.Warn("this server has been removed from the cluster, to rejoin please restart the server")
+		} else {
+			plog.Warning("this server has been removed from the cluster, to rejoin please restart the server")
+		}
+		return false
+	}
 	return s.cluster.IsLocalMemberLearner()
 }
 

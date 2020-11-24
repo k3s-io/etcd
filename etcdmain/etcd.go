@@ -142,7 +142,7 @@ func startEtcdOrProxyV2() {
 		}
 		switch which {
 		case dirMember:
-			stopped, lerrc, errc, err = startEtcd(&cfg.ec)
+			stopped, errc, lerrc, err = startEtcd(&cfg.ec)
 		case dirProxy:
 			err = startProxy(cfg)
 		default:
@@ -158,7 +158,7 @@ func startEtcdOrProxyV2() {
 	} else {
 		shouldProxy := cfg.isProxy()
 		if !shouldProxy {
-			stopped, lerrc, errc, err = startEtcd(&cfg.ec)
+			stopped, errc, lerrc, err = startEtcd(&cfg.ec)
 			if derr, ok := err.(*etcdserver.DiscoveryError); ok && derr.Err == v2discovery.ErrFullCluster {
 				if cfg.shouldFallbackToProxy() {
 					if lg != nil {
@@ -285,11 +285,11 @@ func startEtcdOrProxyV2() {
 	notifySystemd(lg)
 
 	select {
-	case errc := <- lerrc:
-		if strings.Contains(errc.Error(), etcdserver.ErrMemberRemoved.Error()) {
+	case err := <- errc:
+		if strings.Contains(err.Error(), etcdserver.ErrMemberRemoved.Error()) {
 			writeErrorCodeAndExit(cfg.ec.Dir, 10, lg)
 		}
-	case lerr := <-errc:
+	case lerr := <-lerrc:
 		// fatal out on listener errors
 		if lg != nil {
 			lg.Fatal("listener failed", zap.Error(lerr))

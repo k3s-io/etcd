@@ -23,7 +23,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
@@ -76,7 +75,7 @@ func startEtcdOrProxyV2() {
 				plog.Errorf("When listening on specific address(es), this etcd process must advertise accessible url(s) to each connected client.")
 			}
 		}
-		writeErrorCodeAndExit(cfg.ec.Dir, 1, lg)
+		os.Exit(1)
 	}
 
 	if lg == nil {
@@ -236,7 +235,7 @@ func startEtcdOrProxyV2() {
 					plog.Infof("please generate a new discovery token and try to bootstrap again.")
 				}
 			}
-			writeErrorCodeAndExit(cfg.ec.Dir, 1, lg)
+			os.Exit(1)
 		}
 
 		if strings.Contains(err.Error(), "include") && strings.Contains(err.Error(), "--initial-cluster") {
@@ -266,7 +265,7 @@ func startEtcdOrProxyV2() {
 					plog.Infof("if you want to use discovery service, please set --discovery flag.")
 				}
 			}
-			writeErrorCodeAndExit(cfg.ec.Dir, 1, lg)
+			os.Exit(1)
 		}
 		if lg != nil {
 			lg.Fatal("discovery failed", zap.Error(err))
@@ -287,7 +286,17 @@ func startEtcdOrProxyV2() {
 	select {
 	case err := <- errc:
 		if strings.Contains(err.Error(), etcdserver.ErrMemberRemoved.Error()) {
-			writeErrorCodeAndExit(cfg.ec.Dir, 10, lg)
+			tombstoneFile := filepath.Join(cfg.ec.Dir, "tombstone")
+			if err := ioutil.WriteFile(tombstoneFile, []byte{}, 0600); err != nil {
+				if lg != nil {
+					lg.Fatal(
+						"failed to write tombstone file",
+						zap.String("tombstone-file", tombstoneFile),
+					)
+				} else {
+					plog.Fatalf("failed to write tombstone file %s", tombstoneFile)
+				}
+			}
 		}
 	case lerr := <-lerrc:
 		// fatal out on listener errors
@@ -622,19 +631,4 @@ func checkSupportArch() {
 
 	fmt.Printf("etcd on unsupported platform without ETCD_UNSUPPORTED_ARCH=%s set\n", runtime.GOARCH)
 	os.Exit(1)
-}
-
-
-func writeErrorCodeAndExit(dataDir string, errorCode int, lg *zap.Logger) {
-	errorCodeFile := filepath.Join(dataDir, "tombstone")
-	if err := ioutil.WriteFile(errorCodeFile, []byte(strconv.Itoa(errorCode)), 0600); err != nil {
-		if lg != nil {
-			lg.Fatal(
-				"failed to write tombstone file",
-				zap.String("tombstone-file", errorCodeFile),
-			)
-		} else {
-			plog.Fatalf("failed to write tombstone file %s",errorCodeFile)
-		}
-	}
 }

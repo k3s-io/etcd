@@ -2149,7 +2149,6 @@ func (s *EtcdServer) apply(
 				s.consistIndex.setConsistentIndex(e.Index)
 			}
 			var cc raftpb.ConfChange
-			var removedSelf bool
 			pbutil.MustUnmarshal(&cc, e.Data)
 			removedSelf, err := s.applyConfChange(cc, confState)
 			s.setAppliedIndex(e.Index)

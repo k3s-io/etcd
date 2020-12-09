@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"sync"
 	"sync/atomic"
@@ -105,6 +106,7 @@ var (
 	plog = capnslog.NewPackageLogger("go.etcd.io/etcd", "etcdserver")
 
 	storeMemberAttributeRegexp = regexp.MustCompile(path.Join(membership.StoreMembersPrefix, "[[:xdigit:]]{1,16}", "attributes"))
+
 )
 
 func init() {
@@ -2672,6 +2674,15 @@ func (s *EtcdServer) Logger() *zap.Logger {
 
 // IsLearner returns if the local member is raft learner
 func (s *EtcdServer) IsLearner() bool {
+	tombstoneFile := filepath.Join(s.Cfg.DataDir, "tombstone")
+	if _, err := os.Stat(tombstoneFile); err == nil {
+		if lg := s.getLogger(); lg != nil {
+			lg.Warn("this server has been removed from the cluster, to rejoin please restart the server")
+		} else {
+			plog.Warning("this server has been removed from the cluster, to rejoin please restart the server")
+		}
+		return false
+	}
 	return s.cluster.IsLocalMemberLearner()
 }
 

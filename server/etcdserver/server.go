@@ -1345,6 +1345,20 @@ func (s *EtcdServer) StopNotify() <-chan struct{} { return s.done }
 // when the server is being stopped.
 func (s *EtcdServer) StoppingNotify() <-chan struct{} { return s.stopping }
 
+func (s *EtcdServer) ErrNotify() <-chan error { return s.errorc }
+
+func (s *EtcdServer) SelfStats() []byte { return s.stats.JSON() }
+
+func (s *EtcdServer) LeaderStats() []byte {
+	lead := s.getLead()
+	if lead != uint64(s.id) {
+		return nil
+	}
+	return s.lstats.JSON()
+}
+
+func (s *EtcdServer) StoreStats() []byte { return s.v2store.JsonStats() }
+
 func (s *EtcdServer) checkMembershipOperationPermission(ctx context.Context) error {
 	if s.authStore == nil {
 		// In the context of ordinary etcd process, s.authStore will never be nil.

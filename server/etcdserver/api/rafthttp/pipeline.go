@@ -163,9 +163,9 @@ func (p *pipeline) post(data []byte) (err error) {
 	err = checkPostResponse(p.tr.Logger, resp, b, req, p.peerID)
 	if err != nil {
 		p.picker.unreachable(u)
-		// errMemberRemoved is a critical error since a removed member should
+		// ErrMemberRemoved is a critical error since a removed member should
 		// always be stopped. So we use reportCriticalError to report it to errorc.
-		if err == errMemberRemoved {
+		if err == ErrMemberRemoved {
 			reportCriticalError(err, p.errorc)
 		}
 		return err

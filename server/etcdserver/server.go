@@ -1517,6 +1517,8 @@ func (s *EtcdServer) StopNotify() <-chan struct{} { return s.done }
 // when the server is being stopped.
 func (s *EtcdServer) StoppingNotify() <-chan struct{} { return s.stopping }
 
+func (s *EtcdServer) ErrNotify() <-chan error { return s.errorc }
+
 func (s *EtcdServer) SelfStats() []byte { return s.stats.JSON() }
 
 func (s *EtcdServer) LeaderStats() []byte {

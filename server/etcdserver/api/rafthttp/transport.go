@@ -404,7 +404,7 @@ func (t *Transport) SendSnapshot(m snap.Message) {
 	defer t.mu.Unlock()
 	p := t.peers[types.ID(m.To)]
 	if p == nil {
-		m.CloseWithError(errMemberNotFound)
+		m.CloseWithError(ErrMemberNotFound)
 		return
 	}
 	p.sendSnap(m)

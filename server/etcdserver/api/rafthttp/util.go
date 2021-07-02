@@ -32,8 +32,8 @@ import (
 )
 
 var (
-	errMemberRemoved  = fmt.Errorf("the member has been permanently removed from the cluster")
-	errMemberNotFound = fmt.Errorf("member not found")
+	ErrMemberRemoved  = fmt.Errorf("the member has been permanently removed from the cluster")
+	ErrMemberNotFound = fmt.Errorf("member not found")
 )
 
 // NewListener returns a listener for raft message transfer between peers.
@@ -108,7 +108,7 @@ func checkPostResponse(lg *zap.Logger, resp *http.Response, body []byte, req *ht
 			return fmt.Errorf("unhandled error %q when precondition failed", string(body))
 		}
 	case http.StatusForbidden:
-		return errMemberRemoved
+		return ErrMemberRemoved
 	case http.StatusNoContent:
 		return nil
 	default:

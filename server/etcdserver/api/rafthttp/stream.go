@@ -615,8 +615,8 @@ func (cr *streamReader) dial(t streamType) (io.ReadCloser, error) {
 	case http.StatusGone:
 		httputil.GracefulClose(resp)
 		cr.picker.unreachable(u)
-		reportCriticalError(errMemberRemoved, cr.errorc)
-		return nil, errMemberRemoved
+		reportCriticalError(ErrMemberRemoved, cr.errorc)
+		return nil, ErrMemberRemoved
 
 	case http.StatusOK:
 		return resp.Body, nil

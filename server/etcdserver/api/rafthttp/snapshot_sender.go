@@ -17,7 +17,6 @@ package rafthttp
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"net/http"
 	"time"
@@ -107,9 +106,9 @@ func (s *snapshotSender) send(merged snap.Message) {
 			)
 		}
 
-		// errMemberRemoved is a critical error since a removed member should
+		// ErrMemberRemoved is a critical error since a removed member should
 		// always be stopped. So we use reportCriticalError to report it to errorc.
-		if errors.Is(err, errMemberRemoved) {
+		if err == ErrMemberRemoved {
 			reportCriticalError(err, s.errorc)
 		}
 

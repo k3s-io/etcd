@@ -1,8 +1,6 @@
 module go.etcd.io/etcd/server/v3
 
-go 1.23.0
-
-toolchain go1.23.7
+go 1.22.10
 
 require (
 	github.com/coreos/go-semver v0.3.0
@@ -38,8 +36,8 @@ require (
 	go.opentelemetry.io/otel/sdk v1.20.0
 	go.uber.org/multierr v1.6.0
 	go.uber.org/zap v1.17.0
-	golang.org/x/crypto v0.35.0
-	golang.org/x/net v0.36.0
+	golang.org/x/crypto v0.33.0
+	golang.org/x/net v0.35.0
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d
 	google.golang.org/grpc v1.59.0

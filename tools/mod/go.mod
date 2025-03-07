@@ -1,8 +1,6 @@
 module go.etcd.io/etcd/tools/v3
 
-go 1.23.0
-
-toolchain go1.23.7
+go 1.22.10
 
 require (
 	github.com/alexkohler/nakedret v1.0.0
@@ -59,7 +57,7 @@ require (
 	github.com/trustmaster/go-aspell v0.0.0-20200701131845-c2b1f55bec8f // indirect
 	go.mongodb.org/mongo-driver v1.5.4 // indirect
 	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/net v0.36.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect

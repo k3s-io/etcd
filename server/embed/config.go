@@ -654,10 +654,11 @@ func NewConfig() *Config {
 		ExperimentalSnapshotCatchUpEntries: etcdserver.DefaultSnapshotCatchUpEntries,
 		SnapshotCatchUpEntries:             etcdserver.DefaultSnapshotCatchUpEntries,
 
-		MaxTxnOps:            DefaultMaxTxnOps,
-		MaxRequestBytes:      DefaultMaxRequestBytes,
-		MaxConcurrentStreams: DefaultMaxConcurrentStreams,
-		WarningApplyDuration: DefaultWarningApplyDuration,
+		MaxTxnOps:                   DefaultMaxTxnOps,
+		MaxRequestBytes:             DefaultMaxRequestBytes,
+		MaxConcurrentStreams:        DefaultMaxConcurrentStreams,
+		WarningApplyDuration:        DefaultWarningApplyDuration,
+		WarningUnaryRequestDuration: DefaultWarningUnaryRequestDuration,
 
 		GRPCKeepAliveMinTime:  DefaultGRPCKeepAliveMinTime,
 		GRPCKeepAliveInterval: DefaultGRPCKeepAliveInterval,

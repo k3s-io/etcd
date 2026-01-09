@@ -92,11 +92,11 @@ func openBackend(cfg config.ServerConfig, hooks backend.Hooks) backend.Backend {
 	return <-beOpened
 }
 
-// recoverBackendSnapshot recovers the DB from a snapshot in case etcd crashes
+// RecoverBackendSnapshot recovers the DB from a snapshot in case etcd crashes
 // before updating the backend db after persisting raft snapshot to disk,
 // violating the invariant snapshot.Metadata.Index < db.consistentIndex. In this
 // case, replace the db with the snapshot db sent by the leader.
-func recoverSnapshotBackend(cfg config.ServerConfig, oldbe backend.Backend, snapshot raftpb.Snapshot, beExist bool, hooks backend.Hooks) (backend.Backend, error) {
+func RecoverSnapshotBackend(cfg config.ServerConfig, oldbe backend.Backend, snapshot raftpb.Snapshot, beExist bool, hooks backend.Hooks) (backend.Backend, error) {
 	consistentIndex := uint64(0)
 	if beExist {
 		consistentIndex, _ = cindex.ReadConsistentIndex(oldbe.ReadTx())

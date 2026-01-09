@@ -311,6 +311,10 @@ type backendHooks struct {
 	confStateLock  sync.Mutex
 }
 
+func NewBackendHooks(lg *zap.Logger, indexer cindex.ConsistentIndexer) *backendHooks {
+	return &backendHooks{lg: lg, indexer: indexer}
+}
+
 func (bh *backendHooks) OnPreCommitUnsafe(tx backend.BatchTx) {
 	bh.indexer.UnsafeSave(tx)
 	bh.confStateLock.Lock()
@@ -516,7 +520,7 @@ func NewServer(cfg config.ServerConfig) (srv *EtcdServer, err error) {
 				zap.String("snapshot-size", humanize.Bytes(uint64(snapshot.Size()))),
 			)
 
-			if be, err = recoverSnapshotBackend(cfg, be, *snapshot, beExist, beHooks); err != nil {
+			if be, err = RecoverSnapshotBackend(cfg, be, *snapshot, beExist, beHooks); err != nil {
 				cfg.Logger.Panic("failed to recover v3 backend from snapshot", zap.Error(err))
 			}
 			// A snapshot db may have already been recovered, and the old db should have
